@@ -153,7 +153,7 @@ Start the v4 Strapi against the Postgres database to get the tables generated pr
 $ yarn build && yarn develop
 ```
 
-From the `v3-sql-v3-sql` directory, copy the `.env.pg.example` to `.env` and fill out the environment variable values.
+From the `v3-sql-v4-sql` directory, copy the `.env.pg.example` to `.env` and fill out the environment variable values.
 ```
 # General Settings
 DATABASE_CLIENT=pg
