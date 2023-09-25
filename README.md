@@ -69,7 +69,7 @@ e.g.
 ``` 
 # MongoDB Settings
 MONGO_USER=db-mm-api-test
-MONGO_PASSWORD=vkm1xde5EKN_nwb.nvn
+MONGO_PASSWORD=<password>
 MONGO_HOST=cluster0.sgml48b.mongodb.net
 MONGO_PORT=27017
 MONGO_DB=myFirstDatabse
