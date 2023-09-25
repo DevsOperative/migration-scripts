@@ -92,6 +92,11 @@ Install all the dependencies by executing
 $ npm install
 ```
 
+Update column length to allow all data to migrate properly
+```
+psql>ALTER TABLE components_learning_objective_learning_objectives ALTER COLUMN objective TYPE VARCHAR(260);
+```
+
 #### Execute
 
 Execute the migration script by running:
