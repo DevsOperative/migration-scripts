@@ -32,7 +32,7 @@ psql>CREATE DATABASE strapi OWNER strapi;
 Update `.env` file in Strapi with new database information.  Install new required dependencies and update config/database.js file for Postgres connection.  
 
 ```
-npm i pg strapi-connector-bookshelf
+npm i pg strapi-connector-bookshelf knex
 ```
 
 database.js
