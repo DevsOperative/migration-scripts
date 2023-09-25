@@ -130,7 +130,25 @@ Create a new database for the v4 tables.  In my environment I created a database
 psql>CREATE DATABASE strapiv4 OWNER strapi;
 ```
 
-Update `.env` file in Strapi with new database name and start the v4 Strapi against the Postgres database to get the tables generated properly. Once up and running you can kill the process so it isn't in the way.
+Update `.env` file in Strapi with new database name and the following information:
+```
+## Server Settings
+
+HOST=0.0.0.0
+PORT=1337
+APP_KEYS=A2sefii0Rm92FlLlJ/Htpw==,aH/fDMUQaeUlAOIw6J4TkQ==,IXaZA9E1iVQUg3tXn/Vrpw==,IcsJUL60I9k6sb+qg5L8lg==
+
+## Admin Settings
+
+API_TOKEN_SALT=bMoSqkD6F0dXM89vSN2n8g==
+ADMIN_JWT_SECRET=2fV9S1pOJEIuL2EY35n/oQ==
+
+## Users-Permissions Plugin Settings
+
+JWT_SECRET=6fFAo5QLfavN97itZ3sSCQ==
+```
+
+Start the v4 Strapi against the Postgres database to get the tables generated properly. Once up and running you can kill the process so it isn't in the way.
 ```
 $ yarn build && yarn develop
 ```
