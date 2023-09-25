@@ -153,6 +153,11 @@ Start the v4 Strapi against the Postgres database to get the tables generated pr
 $ yarn build && yarn develop
 ```
 
+Update column length in new strapiv4 database to allow all data to migrate properly
+```
+psql>ALTER TABLE components_learning_objective_learning_objectives ALTER COLUMN objective TYPE VARCHAR(260);
+```
+
 From the `v3-sql-v4-sql` directory, copy the `.env.pg.example` to `.env` and fill out the environment variable values.
 ```
 # General Settings
