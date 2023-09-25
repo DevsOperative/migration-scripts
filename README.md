@@ -17,6 +17,8 @@ For more information on supported databases, please see the [deployment guidelin
 ### v3 Mongo to v3 Postgres
 
 #### Setup
+
+Start on the `develop` branch in the `mathmedic-api` repo.
 ##### Strapi Setup
 Create a new user to run Strapi with.  Typically this user will be the owner of the database.
 ```
@@ -108,6 +110,14 @@ $ node index.js
 ### v3 Postgres to v4 Postgres
 
 #### Setup
+Change to the `feature/MATHMEDIC-114` branch in the `mathmedic-api` repo and run the following commands:
+
+```
+$ rm -rf node_modules package-lock.json
+$ nvm use 18
+$ npm i
+```
+
 ##### Strapi Setup
 Create a new user that is a super user.  This is needed so that the migration script can run in replica mode to ignore all foreign keys.
 ```
