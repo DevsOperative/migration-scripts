@@ -59,7 +59,9 @@ module.exports = ({ env }) => ({
 ```
 
 Finally, start the v3 Strapi against the Postgres database to get the tables generated properly. Once up and running you can kill the process so it isn't in the way.
-
+```
+$ yarn build && yarn develop
+```
 
 
 ##### Migration Setup
@@ -114,6 +116,9 @@ psql>CREATE DATABASE strapiv4 OWNER strapi;
 ```
 
 Update `.env` file in Strapi with new database name and start the v4 Strapi against the Postgres database to get the tables generated properly. Once up and running you can kill the process so it isn't in the way.
+```
+$ yarn build && yarn develop
+```
 
 From the `v3-sql-v3-sql` directory, copy the `.env.pg.example` to `.env` and fill out the environment variable values.
 ```
