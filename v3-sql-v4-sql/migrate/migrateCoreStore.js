@@ -25,11 +25,11 @@ async function migrateTables() {
     (await dbV3(resolveSourceTableName(source)).count().first())['count(*)'];
   console.log(`Migrating ${count}/${countTotal} items from ${source} to ${destination}`);
 
-  const { id: _id1, ...apiTokenEntry } = await dbV4(resolveDestTableName(destination))
+  const apiTokenEntry  = await dbV4(resolveDestTableName(destination))
     .where('key', 'plugin_content_manager_configuration_content_types::admin::api-token')
     .first();
 
-  const { id: _id2, ...strapiContentTypesSchema } = await dbV4(resolveDestTableName(destination))
+  const strapiContentTypesSchema  = await dbV4(resolveDestTableName(destination))
     .where('key', 'strapi_content_types_schema')
     .first();
   await dbV4(resolveDestTableName(destination)).del();
@@ -75,8 +75,12 @@ async function migrateTables() {
   }
 
   await resetTableSequence(destination);
-  await dbV4(resolveDestTableName(destination)).insert(apiTokenEntry);
-  await dbV4(resolveDestTableName(destination)).insert(strapiContentTypesSchema);
+  if (apiTokenEntry) {
+    await dbV4(resolveDestTableName(destination)).insert(apiTokenEntry);
+  }
+  if (strapiContentTypesSchema) {
+    await dbV4(resolveDestTableName(destination)).insert(strapiContentTypesSchema);
+  }
 }
 
 const migrateCoreStore = {

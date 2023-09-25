@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const logger = require('../logger');
+const logger = require('./logger');
 const _ = require('lodash');
 const pluralize = require('pluralize');
 const { singular } = pluralize;
@@ -94,7 +94,7 @@ async function run() {
   try {
     logger.info("Connecting to MongoDB...")
     await mongo.connect();
-    
+
     const db = mongo.db();
     logger.info("Connected! Fetching model definitions...")
 
@@ -116,6 +116,12 @@ async function run() {
     for (const model of models) {
       const cursor = db.collection(model.collectionName).find();
       logger.verbose(`Processing collection ${model.collectionName}`)
+
+      if (! await knex.schema.hasTable(model.collectionName)) {
+        logger.verbose(`table ${model.collectionName} does not exist in postgres - skipping`);
+        continue;
+      }
+
       while (await cursor.hasNext()) {
         const entry = await cursor.next();
         const row = transformEntry(entry, model);
@@ -134,9 +140,15 @@ async function run() {
     for (const model of models) {
       const cursor = db.collection(model.collectionName).find();
       logger.verbose(`Processing collection ${model.collectionName}`)
+
+      if (! await knex.schema.hasTable(model.collectionName)) {
+        logger.verbose(`table ${model.collectionName} does not exist in postgres - skipping`);
+        continue;
+      }
+
       while (await cursor.hasNext()) {
         const entry = await cursor.next();
-        
+
         for (const key of Object.keys(entry)) {
           const attribute = model.attributes[key];
 
@@ -169,7 +181,7 @@ async function run() {
           }
 
           if (attribute.type === 'dynamiczone') {
-            
+
             // create compo links
             const linkTableName = `${model.collectionName}_components`;
 
@@ -227,14 +239,14 @@ async function run() {
 
           if (attribute.model || attribute.collection) {
             // create relation links
-            
+
             const targetModel = models.find((m) => {
               return (
                 [attribute.model, attribute.collection].includes(m.modelName) &&
                 (!attribute.plugin || (attribute.plugin && attribute.plugin === m.plugin))
               );
             });
-            
+
             const targetAttribute = targetModel?.attributes?.[attribute.via];
 
             const isOneWay = attribute.model && !attribute.via && attribute.model !== '*';
@@ -264,19 +276,27 @@ async function run() {
               targetAttribute?.collection &&
               targetAttribute?.collection !== '*';
 
-              
+
             if (isOneWay || isOneToOne || isManyToOne) {
               // TODO: optimize with one updata at the end
 
-              if (!entry[key]) {
+              if (!entry[key] || !idMap.get(entry[key])) {
                 continue;
               }
 
-              await knex(model.collectionName)
-                .update({
-                  [key]: idMap.get(entry[key]),
-                })
-                .where('id', idMap.get(entry._id));
+              try {
+                await knex(model.collectionName)
+                  .update({
+                    [key]: idMap.get(entry[key]),
+                  })
+                  .where('id', idMap.get(entry._id));
+              } catch(err) {
+                if (err.routine === '_bt_check_unique') {
+                  logger.warn(err)
+                } else {
+                  throw err;
+                }
+              }
 
               continue;
             }
@@ -351,8 +371,9 @@ async function run() {
     logger.info("Post-migration steps complete.")
   }
   catch(err){
+    console.log(err);
     logger.error(err)
-  } 
+  }
   finally {
     logger.info("Cleaning Up...")
     await mongo.close();

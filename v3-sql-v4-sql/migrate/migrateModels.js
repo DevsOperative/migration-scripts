@@ -9,6 +9,8 @@ const { resolveSourceTableName } = require('./helpers/tableNameHelpers');
 var relations = [];
 const skipAttributes = ['created_by', 'updated_by'];
 
+const processedTables = [];
+
 async function migrateModels(tables) {
   console.log('Migrating Models');
   const modelsDefs = await dbV3(resolveSourceTableName('core_store')).where(
