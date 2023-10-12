@@ -17,6 +17,7 @@ class CollectionIdMap extends Map {
 
 const idMap = {
   _globalMap: new Map(),
+  _myCollectionGlobalMap: new Map(),
   _collectionMap: {},
   collection(name) {
     if (!this._collectionMap[name]) {
@@ -31,6 +32,7 @@ const idMap = {
     const id = this.collection(collectionName).next(mongoId);
     // set global Id map for relation matching
     this._globalMap.set(mongoId.toString(), id);
+    this._myCollectionGlobalMap.set(mongoId.toString(), {id, collectionName});
 
     return id;
   },
@@ -38,6 +40,10 @@ const idMap = {
   get(mongoId) {
     return this._globalMap.get(mongoId.toString());
   },
+
+  myCollectionGlobalMap() {
+    return this._myCollectionGlobalMap;
+  }
 };
 
 module.exports = idMap;

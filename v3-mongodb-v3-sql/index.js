@@ -98,6 +98,8 @@ async function run() {
     const db = mongo.db();
     logger.info("Connected! Fetching model definitions...")
 
+    // knex.schema.dropTableIfExists('id_map');
+
     const models = await getModelDefs(db);
 
     const modelMap = models.reduce((acc, model) => {
@@ -150,196 +152,172 @@ async function run() {
         const entry = await cursor.next();
 
         for (const key of Object.keys(entry)) {
-          const attribute = model.attributes[key];
+          try {
+            const attribute = model.attributes[key];
 
-          if (!attribute) {
-            continue;
-          }
-
-          if (attribute.type === 'component') {
-            // create compo links
-            const componentModel = modelMap[attribute.component];
-            const linkTableName = `${model.collectionName}_components`;
-
-            const rows = entry[key].map((mongoLink, idx) => {
-              return {
-                id: idMap.next(mongoLink._id, linkTableName),
-                field: key,
-                order: idx + 1,
-                component_type: componentModel.collectionName,
-                component_id: idMap.get(mongoLink.ref),
-                [`${singular(model.collectionName)}_id`]: idMap.get(entry._id),
-              };
-            });
-
-            if (rows.length > 0) {
-              logger.debug(`Filling component ${key} joining table - ${JSON.stringify(rows)}`)
-              await knex(linkTableName).insert(rows);
-            }
-
-            continue;
-          }
-
-          if (attribute.type === 'dynamiczone') {
-
-            // create compo links
-            const linkTableName = `${model.collectionName}_components`;
-
-            const rows = entry[key].map((mongoLink, idx) => {
-              const componentModel = models.find((m) => m.globalId === mongoLink.kind);
-
-              return {
-                id: idMap.next(mongoLink._id, linkTableName),
-                field: key,
-                order: idx + 1,
-                component_type: componentModel.collectionName,
-                component_id: idMap.get(mongoLink.ref),
-                [`${singular(model.collectionName)}_id`]: idMap.get(entry._id),
-              };
-            });
-
-            if (rows.length > 0) {
-              logger.debug(`Filling dynamiczone ${key} joining table - ${JSON.stringify(rows)}`)
-              await knex(linkTableName).insert(rows);
-            }
-
-            continue;
-          }
-
-          if (attribute.model === 'file' && attribute.plugin === 'upload') {
-            if (!entry[key]) {
+            if (!attribute) {
               continue;
             }
 
-            const row = {
-              upload_file_id: idMap.get(entry[key]),
-              related_id: idMap.get(entry._id),
-              related_type: model.collectionName,
-              field: key,
-              order: 1,
-            };
-            logger.debug(`Linking single file - ${key} - ${JSON.stringify(row)}`)
-            await knex('upload_file_morph').insert(row);
-          }
+            if (attribute.type === 'component') {
+              // create compo links
+              const componentModel = modelMap[attribute.component];
+              const linkTableName = `${model.collectionName}_components`;
 
-          if (attribute.collection === 'file' && attribute.plugin === 'upload') {
-            const rows = entry[key].map((e, idx) => ({
-              upload_file_id: idMap.get(e),
-              related_id: idMap.get(entry._id),
-              related_type: model.collectionName,
-              field: key,
-              order: idx + 1,
-            }));
-
-            if (rows.length > 0) {
-              logger.debug(`Linking multiple files - ${key} - ${JSON.stringify(rows)}`)
-              await knex('upload_file_morph').insert(rows);
-            }
-          }
-
-          if (attribute.model || attribute.collection) {
-            // create relation links
-
-            const targetModel = models.find((m) => {
-              return (
-                [attribute.model, attribute.collection].includes(m.modelName) &&
-                (!attribute.plugin || (attribute.plugin && attribute.plugin === m.plugin))
-              );
-            });
-
-            const targetAttribute = targetModel?.attributes?.[attribute.via];
-
-            const isOneWay = attribute.model && !attribute.via && attribute.model !== '*';
-            const isOneToOne =
-              attribute.model &&
-              attribute.via &&
-              targetAttribute?.model &&
-              targetAttribute?.model !== '*';
-            const isManyToOne =
-              attribute.model &&
-              attribute.via &&
-              targetAttribute?.collection &&
-              targetAttribute?.collection !== '*';
-            const isOneToMany =
-              attribute.collection &&
-              attribute.via &&
-              targetAttribute?.model &&
-              targetAttribute?.model !== '*';
-            const isManyWay =
-              attribute.collection && !attribute.via && attribute.collection !== '*';
-            const isMorph = attribute.model === '*' || attribute.collection === '*';
-
-            // TODO: check dominant side
-            const isManyToMany =
-              attribute.collection &&
-              attribute.via &&
-              targetAttribute?.collection &&
-              targetAttribute?.collection !== '*';
-
-
-            if (isOneWay || isOneToOne || isManyToOne) {
-              // TODO: optimize with one updata at the end
-
-              if (!entry[key] || !idMap.get(entry[key])) {
-                continue;
-              }
-
-              try {
-                await knex(model.collectionName)
-                  .update({
-                    [key]: idMap.get(entry[key]),
-                  })
-                  .where('id', idMap.get(entry._id));
-              } catch(err) {
-                if (err.routine === '_bt_check_unique') {
-                  logger.warn(err)
-                } else {
-                  throw err;
-                }
-              }
-
-              continue;
-            }
-
-            if (isOneToMany) {
-              // nothing to do
-              continue;
-            }
-
-            if (isManyWay) {
-              const joinTableName =
-                attribute.collectionName || `${model.collectionName}__${_.snakeCase(key)}`;
-
-              const fk = `${singular(model.collectionName)}_id`;
-              let otherFk = `${singular(attribute.collection)}_id`;
-
-              if (otherFk === fk) {
-                otherFk = `related_${otherFk}`;
-              }
-
-              const rows = entry[key].map((id) => {
+              const rows = entry[key].map((mongoLink, idx) => {
                 return {
-                  [otherFk]: idMap.get(id),
-                  [fk]: idMap.get(entry._id),
+                  id: idMap.next(mongoLink._id, linkTableName),
+                  field: key,
+                  order: idx + 1,
+                  component_type: componentModel.collectionName,
+                  component_id: idMap.get(mongoLink.ref),
+                  [`${singular(model.collectionName)}_id`]: idMap.get(entry._id),
                 };
               });
 
               if (rows.length > 0) {
-                await knex(joinTableName).insert(rows);
+                logger.debug(`Filling component ${key} joining table - ${JSON.stringify(rows)}`)
+                await knex(linkTableName).insert(rows);
               }
 
               continue;
             }
 
-            if (isManyToMany) {
-              if (attribute.dominant) {
-                const joinTableName = getCollectionName(attribute, targetAttribute);
+            if (attribute.type === 'dynamiczone') {
 
-                let fk = `${singular(targetAttribute.collection)}_id`;
+              // create compo links
+              const linkTableName = `${model.collectionName}_components`;
+
+              const rows = entry[key].map((mongoLink, idx) => {
+                const componentModel = models.find((m) => m.globalId === mongoLink.kind);
+
+                return {
+                  id: idMap.next(mongoLink._id, linkTableName),
+                  field: key,
+                  order: idx + 1,
+                  component_type: componentModel.collectionName,
+                  component_id: idMap.get(mongoLink.ref),
+                  [`${singular(model.collectionName)}_id`]: idMap.get(entry._id),
+                };
+              });
+
+              if (rows.length > 0) {
+                logger.debug(`Filling dynamiczone ${key} joining table - ${JSON.stringify(rows)}`)
+                await knex(linkTableName).insert(rows);
+              }
+
+              continue;
+            }
+
+            if (attribute.model === 'file' && attribute.plugin === 'upload') {
+              if (!entry[key]) {
+                continue;
+              }
+
+              const row = {
+                upload_file_id: idMap.get(entry[key]),
+                related_id: idMap.get(entry._id),
+                related_type: model.collectionName,
+                field: key,
+                order: 1,
+              };
+              logger.debug(`Linking single file - ${key} - ${JSON.stringify(row)}`)
+              await knex('upload_file_morph').insert(row);
+            }
+
+            if (attribute.collection === 'file' && attribute.plugin === 'upload') {
+              const rows = entry[key].map((e, idx) => ({
+                upload_file_id: idMap.get(e),
+                related_id: idMap.get(entry._id),
+                related_type: model.collectionName,
+                field: key,
+                order: idx + 1,
+              }));
+
+              if (rows.length > 0) {
+                logger.debug(`Linking multiple files - ${key} - ${JSON.stringify(rows)}`)
+                await knex('upload_file_morph').insert(rows);
+              }
+            }
+
+            if (attribute.model || attribute.collection) {
+              // create relation links
+
+              const targetModel = models.find((m) => {
+                return (
+                  [attribute.model, attribute.collection].includes(m.modelName) &&
+                  (!attribute.plugin || (attribute.plugin && attribute.plugin === m.plugin))
+                );
+              });
+
+              const targetAttribute = targetModel?.attributes?.[attribute.via];
+
+              const isOneWay = attribute.model && !attribute.via && attribute.model !== '*';
+              const isOneToOne =
+                attribute.model &&
+                attribute.via &&
+                targetAttribute?.model &&
+                targetAttribute?.model !== '*';
+              const isManyToOne =
+                attribute.model &&
+                attribute.via &&
+                targetAttribute?.collection &&
+                targetAttribute?.collection !== '*';
+              const isOneToMany =
+                attribute.collection &&
+                attribute.via &&
+                targetAttribute?.model &&
+                targetAttribute?.model !== '*';
+              const isManyWay =
+                attribute.collection && !attribute.via && attribute.collection !== '*';
+              const isMorph = attribute.model === '*' || attribute.collection === '*';
+
+              // TODO: check dominant side
+              const isManyToMany =
+                attribute.collection &&
+                attribute.via &&
+                targetAttribute?.collection &&
+                targetAttribute?.collection !== '*';
+
+
+              if (isOneWay || isOneToOne || isManyToOne) {
+                // TODO: optimize with one updata at the end
+
+                if (!entry[key] || !idMap.get(entry[key])) {
+                  continue;
+                }
+
+                try {
+                  await knex(model.collectionName)
+                    .update({
+                      [key]: idMap.get(entry[key]),
+                    })
+                    .where('id', idMap.get(entry._id));
+                } catch (err) {
+                  if (err.routine === '_bt_check_unique') {
+                    logger.warn(err)
+                  } else {
+                    throw err;
+                  }
+                }
+
+                continue;
+              }
+
+              if (isOneToMany) {
+                // nothing to do
+                continue;
+              }
+
+              if (isManyWay) {
+                const joinTableName =
+                  attribute.collectionName || `${model.collectionName}__${_.snakeCase(key)}`;
+
+                const fk = `${singular(model.collectionName)}_id`;
                 let otherFk = `${singular(attribute.collection)}_id`;
 
                 if (otherFk === fk) {
-                  fk = `${singular(attribute.via)}_id`;
+                  otherFk = `related_${otherFk}`;
                 }
 
                 const rows = entry[key].map((id) => {
@@ -352,23 +330,68 @@ async function run() {
                 if (rows.length > 0) {
                   await knex(joinTableName).insert(rows);
                 }
+
+                continue;
+              }
+
+              if (isManyToMany) {
+                if (attribute.dominant) {
+                  const joinTableName = getCollectionName(attribute, targetAttribute);
+
+                  let fk = `${singular(targetAttribute.collection)}_id`;
+                  let otherFk = `${singular(attribute.collection)}_id`;
+
+                  if (otherFk === fk) {
+                    fk = `${singular(attribute.via)}_id`;
+                  }
+
+                  const rows = entry[key].map((id) => {
+                    return {
+                      [otherFk]: idMap.get(id),
+                      [fk]: idMap.get(entry._id),
+                    };
+                  });
+
+                  if (rows.length > 0) {
+                    await knex(joinTableName).insert(rows);
+                  }
+                }
+
+                continue;
               }
 
               continue;
             }
 
-            continue;
+            // get relations
+          } catch(err) {
+            throw err;
           }
-
-          // get relations
         }
       }
 
       await cursor.close();
 
       await dialect.afterMigration?.(knex);
+
     }
     logger.info("Post-migration steps complete.")
+
+    logger.info("Saving id map to database");
+    await knex.schema.createTableIfNotExists('id_map', function(table) {
+      table.string('mongoId');
+      table.string('collectionName');
+      table.integer('sqlId', 10);
+    });
+
+    const inserts = [];
+    for (const [mongoId, info] of idMap.myCollectionGlobalMap().entries()) {
+      inserts.push({collectionName: info.collectionName, mongoId, sqlId: info.id});
+    }
+
+    console.log(inserts);
+    await knex.batchInsert('id_map', inserts, 30);
+    logger.info('Done!');
   }
   catch(err){
     console.log(err);
