@@ -12,6 +12,7 @@ if (process.env.SQL_CLIENT === 'postgres') {
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_DATABASE,
       schema: process.env.DATABASE_SCHEMA,
+      ssl: false
     },
   };
 } else if (process.env.SQL_CLIENT === 'mysql') {

@@ -98,7 +98,11 @@ async function run() {
     const db = mongo.db();
     logger.info("Connected! Fetching model definitions...")
 
-    // knex.schema.dropTableIfExists('id_map');
+    knex.schema.alterTable('components_learning_objective_learning_objectives', function(table) {
+      table.string('objective', 260);
+    });
+
+    await knex.raw('drop table if exists id_map');
 
     const models = await getModelDefs(db);
 
@@ -389,7 +393,6 @@ async function run() {
       inserts.push({collectionName: info.collectionName, mongoId, sqlId: info.id});
     }
 
-    console.log(inserts);
     await knex.batchInsert('id_map', inserts, 30);
     logger.info('Done!');
   }

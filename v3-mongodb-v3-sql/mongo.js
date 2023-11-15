@@ -11,6 +11,6 @@ const uri = mongoUriBuilder({
   options: process.env.MONGO_OPTIONS,
 });
 
-const client = new MongoClient('mongodb+srv://db-mm-api-test:vkm1xde5EKN_nwb.nvn@cluster0.sgml48b.mongodb.net/myFirstDatabse?ssl=true&retryWrites=true&w=majority');
+const client = new MongoClient('mongodb://db-prod:cjy2cuJMJHCLyNaz@cluster0-shard-00-00.aof4e.mongodb.net:27017,cluster0-shard-00-01.aof4e.mongodb.net:27017,cluster0-shard-00-02.aof4e.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-cgnbaq-shard-0&authSource=admin&retryWrites=true&w=majority');
 
 module.exports = client;

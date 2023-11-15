@@ -8,6 +8,7 @@ const { migrateUsers } = require('./migrateUsers');
 const { migrateWebhooks } = require('./migrateWebhooks');
 const { migrateI18n } = require('./migrateI18n');
 const { migrateComponents } = require('./migrateComponents');
+const knex = require("knex");
 
 const migrations = [
   migrateCoreStore,
@@ -33,6 +34,9 @@ async function migrate() {
       );
       console.log('Replication role requires specific admin permissions');
     }
+
+    await dbV4.raw('create table if not exists home as table "Home" with no data');
+    await dbV4.raw('create table if not exists home_components as table "Home_components" with no data');
   }
 
   if (isMYSQL) {
@@ -79,6 +83,9 @@ async function migrate() {
   if (isMYSQL) {
     await dbV4.raw('SET FOREIGN_KEY_CHECKS=1;');
   }
+
+  await dbV4.raw('insert into "Home" select * from home;')
+  await dbV4.raw('insert into "Home_components" select * from home_components;')
 }
 
 module.exports = {
