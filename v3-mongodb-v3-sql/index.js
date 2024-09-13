@@ -97,10 +97,10 @@ async function run() {
 
     const db = mongo.db();
     logger.info("Connected! Fetching model definitions...")
-
-    knex.schema.alterTable('components_learning_objective_learning_objectives', function(table) {
-      table.string('objective', 260);
-    });
+    //
+    // knex.schema.alterTable('components_learning_objective_learning_objectives', function(table) {
+    //   table.string('objective', 260);
+    // });
 
     await knex.raw('drop table if exists id_map');
 
