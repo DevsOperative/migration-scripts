@@ -34,9 +34,6 @@ async function migrate() {
       );
       console.log('Replication role requires specific admin permissions');
     }
-
-    await dbV4.raw('create table if not exists home as table "Home" with no data');
-    await dbV4.raw('create table if not exists home_components as table "Home_components" with no data');
   }
 
   if (isMYSQL) {
