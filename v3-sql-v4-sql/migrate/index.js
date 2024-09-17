@@ -80,9 +80,6 @@ async function migrate() {
   if (isMYSQL) {
     await dbV4.raw('SET FOREIGN_KEY_CHECKS=1;');
   }
-
-  await dbV4.raw('insert into "Home" select * from home;')
-  await dbV4.raw('insert into "Home_components" select * from home_components;')
 }
 
 module.exports = {
